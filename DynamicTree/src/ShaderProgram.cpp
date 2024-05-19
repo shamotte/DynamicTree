@@ -5,7 +5,18 @@
 #include <iostream>
 
 
-std::string path  = "..\\POGame\\Shader\\";
+#pragma region Error
+
+#define ASSERT(x) if(!(x)) __debugbreak();
+
+#define GLCALL(x) ClearGLError();\
+x;\
+ASSERT(PrintGLError());
+
+
+
+
+std::string path = "";
 
 static unsigned int CreateShader(unsigned int type, const char* source)
 {
@@ -107,7 +118,7 @@ void Shader::SetUniform1i(const std::string& name, int i)
 void Shader::SetUniformMat4f(const std::string& name,const glm::mat4& mat)
 {
     Bind();
-    glUniformMatrix4fv(GetUniformLocation(name), 1, false, &mat[0][0]);
+    glUniformMatrix4fv(GetUniformLocation(name), 1, false, glm::value_ptr(mat));
 }
 
 void Shader::SetUniform2f(const std::string& name, float f1, float f2)

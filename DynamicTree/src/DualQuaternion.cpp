@@ -45,6 +45,11 @@ DualQuaternion::DualQuaternion():
 	
 }
 
+std::ostream& operator<<(std::ostream& os, const Quat& q)
+{
+	os << q.w << " " << q.x << " " << q.y << " " << q.z << "\n";
+	return os;
+}
 
 
 #pragma region Quat
@@ -102,6 +107,11 @@ Quat Quat::multiply(const Quat& o)
 
 }
 
+Quat Quat::scale(float f)
+{
+	return Quat(w*f,x*f,y*f,z*f);
+}
+
 Quat Quat::dot(const Quat& other)
 {
 	return Quat();
@@ -126,14 +136,42 @@ Quat Quat::normalized() const
 	return Quat(w / sum, x / sum, y / sum, z / sum);
 }
 
+Vertex Quat::toPont()
+{
+	return Vertex(x,y,z,1);
+}
+
 Quat Quat::operator+(const Quat& other)
 {
 	return this->add(other);
 }
+
+
 
 Quat Quat::operator*(const Quat& other)
 {
 	return this->multiply(other);
 }
 
+Quat Quat::operator*(float scalar)
+{
+	return scale(scalar);
+}
+
 #pragma endregion
+
+Vertex::Vertex(float _x, float _y, float _z, float _w)
+{
+	x = _x;
+	y = _y;
+	z = _z;
+	w = _w;
+}
+
+Vertex::Vertex()
+{
+	x = 0;
+	y = 0;
+	z = 0;
+	w = 1;
+}

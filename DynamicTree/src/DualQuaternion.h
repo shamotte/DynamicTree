@@ -1,4 +1,13 @@
 #pragma once
+#include <iostream>
+
+struct Vertex {
+	float x, y, z, w;
+
+	Vertex(float _x, float _y, float _z, float _w);
+	Vertex();
+
+};
 
 class Quat {
 
@@ -17,20 +26,33 @@ public:
 
 	Quat add(const Quat& other);
 	Quat multiply(const Quat& other);
+
+	Quat scale(float f);
+
 	Quat dot(const Quat& other);
 	Quat cors(const Quat& other);
 
 	Quat conjugate() const;
 	Quat normalized() const;
+
+
+	Vertex toPont();
 	
 
 	Quat operator+(const Quat& other);
 	Quat operator*(const Quat& other);
+	Quat operator*( float scalar);
+
+
+
 
 
 
 
 };
+
+std::ostream& operator<<(std::ostream& os, const Quat& q);
+
 
 
 

@@ -1,7 +1,8 @@
 #pragma once
 #include <string>
-#include "Renderer.h"
-#include "external/glm/glm.hpp"
+
+#include "glm/glm.hpp"
+#include "Utils.h"
 
 class Shader {
 	unsigned int RendererID;
