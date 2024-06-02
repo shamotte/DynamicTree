@@ -11,5 +11,5 @@ layout (location=0) in vec4 vertex; //wspolrzedne wierzcholka w przestrzeni mode
 
 
 void main(void) {
-    gl_Position=P*V*M*(vertex);
+    gl_Position=vertex;
 }

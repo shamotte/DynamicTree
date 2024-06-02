@@ -134,12 +134,12 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="src\Aplication.cpp" />
-    <ClCompile Include="src\DualQuaternion.cpp" />
+    <ClCompile Include="src\Bone.cpp" />
     <ClCompile Include="src\ShaderProgram.cpp" />
     <ClCompile Include="src\Utils.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="src\DualQuaternion.h" />
+    <ClInclude Include="src\Bone.h" />
     <ClInclude Include="src\ShaderProgram.h" />
     <ClInclude Include="src\Utils.h" />
   </ItemGroup>

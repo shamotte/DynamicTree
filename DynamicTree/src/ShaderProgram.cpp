@@ -44,7 +44,7 @@ static unsigned int CreateShader(unsigned int type, const char* source)
 }
 
 
-Shader::Shader(const std::string& vertexPath, const std::string& fragmentPath) : RendererID{glCreateProgram()}
+Shader::Shader(const std::string& vertexPath, const std::string& fragmentPath, const std::string& geometryPath) : RendererID{glCreateProgram()}
 {
     {
         std::ifstream file(path + vertexPath, std::ios::in);
@@ -72,6 +72,26 @@ Shader::Shader(const std::string& vertexPath, const std::string& fragmentPath) :
         file.close();
         GLCALL(glAttachShader(RendererID, fs););
     }
+
+    if (geometryPath != ""){
+        std::ifstream file(path + geometryPath, std::ios::in);
+        if (!file.good())
+        {
+            perror("cannot open geometry shader file");
+        }
+
+        std::stringstream source;
+        source << file.rdbuf();
+
+        GLCALL(unsigned int fs = CreateShader(GL_GEOMETRY_SHADER, source.str().c_str()););
+        file.close();
+        GLCALL(glAttachShader(RendererID, fs););
+
+    }
+
+
+
+
         GLCALL(glLinkProgram(RendererID););
 
 }

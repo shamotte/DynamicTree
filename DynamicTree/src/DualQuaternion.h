@@ -1,5 +1,6 @@
 #pragma once
 #include <iostream>
+#include "Utils.h"
 
 struct Vertex {
 	float x, y, z, w;
@@ -24,24 +25,32 @@ public:
 
 
 
-	Quat add(const Quat& other);
-	Quat multiply(const Quat& other);
+	Quat add(const Quat& other) const;
+	Quat multiply(const Quat& other) const;
 
-	Quat scale(float f);
+	Quat scale(float f) const;
 
-	Quat dot(const Quat& other);
-	Quat cors(const Quat& other);
+	float dot(const Quat& other) const;
+	Quat cors(const Quat& other) const;
 
 	Quat conjugate() const;
 	Quat normalized() const;
+	float magnitude() const;
+	float magnitudeSqr() const;
 
 
-	Vertex toPont();
+	static Quat lerp(const Quat& a, const Quat& b, float t);
+	static Quat slerp(const Quat& a, const Quat& b, float t);
+
+
+
+
+	Vertex toPont() const;
 	
 
-	Quat operator+(const Quat& other);
-	Quat operator*(const Quat& other);
-	Quat operator*( float scalar);
+	Quat operator+(const Quat& other) const;
+	Quat operator*(const Quat& other) const;
+	Quat operator*( float scalar) const;
 
 
 
@@ -64,17 +73,31 @@ public:
 
 
 
-	DualQuaternion add(const DualQuaternion& other);
+	DualQuaternion add(const DualQuaternion& other) const;
 
-	DualQuaternion multiply(const DualQuaternion& other);
+	DualQuaternion multiply(const DualQuaternion& other) const;
+	DualQuaternion scale(const float value) const;
+
+
+	DualQuaternion operator+(const DualQuaternion& other) const;
+	DualQuaternion operator*(const DualQuaternion& other) const;
+	DualQuaternion operator*(float scalar) const;
+
+	static DualQuaternion translation(float x, float y, float z);
+	static DualQuaternion rotation(float x, float y, float z);
+	Vertex toVertex();
+
+	
+
+	float magnitue() const;
 
 
 
 	DualQuaternion conjugate() const;
-	DualQuaternion conjugate();
 
 	DualQuaternion(Quat _real, Quat _dual);
 	DualQuaternion(float p1, float  p2, float p3, float p4);
+	DualQuaternion(float x, float  y, float z);
 	DualQuaternion();
 
 };
