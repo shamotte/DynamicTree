@@ -15,6 +15,8 @@ class bone {
 public:
 
 	unsigned int parent;
+	unsigned int layer;
+	unsigned int children =0;
 	
 	float lenght = 3;
 
