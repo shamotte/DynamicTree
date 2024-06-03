@@ -119,10 +119,11 @@ void generate_segemnt(unsigned int parentIndex)
 	float t =  clamp(clamp(1 - b.layer / 100.0f, 0.0f, 1.0f) - 0.2 * parent.children, 0.05, 0.95);
 	vec3 final = direction * t + a * (1 - t);
 	vec4 finaltransformed = parent.final * vec4(final.x, final.y, final.z, 0);
+	final = finaltransformed;
 	
 
 
-	mat4 rotation = lookAt(vec3(0, 0, 0),final , vec3(0, 1, 0));
+	mat4 rotation = lookAt(vec3(0, 0, 0), final, vec3(0, 1, 0));
 	b.parent = parentIndex;
 	b.children = 0;
 	b.rotation = rotation;
