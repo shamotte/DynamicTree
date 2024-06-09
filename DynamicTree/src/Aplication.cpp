@@ -261,42 +261,6 @@ const  float common_vertecies[16] = {
 
 
 
-void generate_segemnt(unsigned int parentIndex)
-{
-	bone& parent = treeSkeleton[parentIndex];
-	parent.children++;
-	float rd = radians((float)(rand() % 360));
-
-	float rx = sin(rd);
-	float rz = cos(rd);
-	//float length = sqrt(rx * rx + rz * rz);
-	//rx /= length;
-	//rz /= length;
-	bone b;
-	b.layer = parent.layer + 1;
-
-	vec3 direction = vec3(rx, 0, rz);
-	vec3 straight = parent.final * vec4(0, 1, 0, 0);
-	vec3 up = vec3(0, 1, 0);
-	vec3 a = 0.5f * up + 0.5f * straight;
-	float t = clamp(clamp(1 - b.layer / 100.0f, 0.0f, 1.0f) - 0.2 * parent.children, 0.05, 0.95);
-	vec3 final = direction * t + a * (1 - t);
-	vec4 finaltransformed = parent.final * vec4(final.x, final.y, final.z, 0);
-	final = finaltransformed;
-
-
-
-	mat4 rotation = lookAt(vec3(0, 0, 0), final, vec3(0, 1, 0));
-	b.parent = parentIndex;
-	b.children = 0;
-	b.rotation = rotation;
-	b.lenght = 1;
-	b.translation = translate(mat4(1), vec3(0, parent.lenght, 0));
-	treeSkeleton.push_back(std::move(b));
-
-
-
-}
 
 
 
@@ -387,7 +351,7 @@ int main(void)
 	//treeSkeleton.push_back(b2);
 	//treeSkeleton.push_back(b3);
 
-	
+
 	branch br(0, vec4(0, 10, 0, 1), 5);
 	//generate_segemnt(0);
 
@@ -399,37 +363,71 @@ int main(void)
 	br.update(2.1);
 	br.update(2.1);
 
-    while (!glfwWindowShouldClose(window))
-    {
-		rotationAngle += 1;
+	while (!glfwWindowShouldClose(window))
+	{
+		/*rotationAngle += 1;
 		mat4 view = glm::lookAt(vec3(4 * sin(glm::radians(rotationAngle)), 0, 4 * cos(glm::radians(rotationAngle))), vec3(0, 0, 0), vec3(0, 1, 0));
-		GLCALL(bonesShader.SetUniformMat4f("V", view));
+		GLCALL(bonesShader.SetUniformMat4f("V", view));*/
+#pragma region Camera
+		Camera camera(vec3(0.0f, 1.7f, 2.0f), vec3(0.0f, 1.0f, 0.0f), -90.0f, 0.0f); //Initial camera position
+		float deltaTime = 0.0f;
+		float lastFrame = 0.0f;
+
+		while (!glfwWindowShouldClose(window))
+		{
+			float currentFrame = glfwGetTime();
+			deltaTime = currentFrame - lastFrame; // Calculate frame time
+			lastFrame = currentFrame;
+			//Keyboard handling
+			if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
+				camera.ProcessKeyboard(GLFW_KEY_W, deltaTime);
+			if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
+				camera.ProcessKeyboard(GLFW_KEY_S, deltaTime);
+			if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
+				camera.ProcessKeyboard(GLFW_KEY_A, deltaTime);
+			if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
+				camera.ProcessKeyboard(GLFW_KEY_D, deltaTime);
+			if (glfwGetKey(window, GLFW_KEY_UP) == GLFW_PRESS)
+				camera.ProcessKeyboard(GLFW_KEY_UP, deltaTime);
+			if (glfwGetKey(window, GLFW_KEY_DOWN) == GLFW_PRESS)
+				camera.ProcessKeyboard(GLFW_KEY_DOWN, deltaTime);
+			if (glfwGetKey(window, GLFW_KEY_LEFT) == GLFW_PRESS)
+				camera.ProcessKeyboard(GLFW_KEY_LEFT, deltaTime);
+			if (glfwGetKey(window, GLFW_KEY_RIGHT) == GLFW_PRESS)
+				camera.ProcessKeyboard(GLFW_KEY_RIGHT, deltaTime);
+
+			// Get the view matrix from the camera and pass it to the shader
+			mat4 view = camera.GetViewMatrix();
+			GLCALL(bonesShader.SetUniformMat4f("V", view));
+
+
 #pragma endregion Camera
-		
-		glClear(GL_COLOR_BUFFER_BIT);
+
+
+			glClear(GL_COLOR_BUFFER_BIT);
 
 #pragma region RenderBones
-		
-		
 
-		GLCALL(glVertexAttribPointer(0, 4, GL_FLOAT, GL_FALSE, 0, common_vertecies));
 
-		bonesShader.Bind();
-		
-		
-		std::cout << treeSkeleton.size()<<"\n";
 
-		update_final_matrices();
+			GLCALL(glVertexAttribPointer(0, 4, GL_FLOAT, GL_FALSE, 0, common_vertecies));
 
-	
-		for (unsigned int i = 0; i < treeSkeleton.size(); i++)
-		{
-			bone& bon = treeSkeleton[i];
-			bonesShader.SetUniform4f("last", 0, bon.lenght, 0, 1);
+			bonesShader.Bind();
 
-			bonesShader.SetUniformMat4f("M", bon.final);
-			GLCALL(glDrawArrays(GL_LINES_ADJACENCY, 0, 4))
-		}
+
+			std::cout << treeSkeleton.size() << "\n";
+
+			update_final_matrices();
+
+
+			for (unsigned int i = 0; i < treeSkeleton.size(); i++)
+			{
+				bone& bon = treeSkeleton[i];
+				bonesShader.SetUniform4f("last", 0, bon.lenght, 0, 1);
+
+				bonesShader.SetUniformMat4f("M", bon.final);
+				GLCALL(glDrawArrays(GL_LINES_ADJACENCY, 0, 4))
+			}
 
 
 
@@ -446,12 +444,13 @@ int main(void)
 
 
 
-		glfwSwapBuffers(window);
+			glfwSwapBuffers(window);
 
 
-		glfwPollEvents();
+			glfwPollEvents();
+		}
+
+		glfwTerminate();
+		return 0;
 	}
-
-	glfwTerminate();
-	return 0;
 }
