@@ -6,7 +6,7 @@
 
 
 #include "Utils.h"
-
+extern float symulation_time;
 
 
 
@@ -17,8 +17,12 @@ public:
 	unsigned int parent;
 	unsigned int layer;
 	unsigned int children =0;
-	
-	float lenght = 3;
+
+	float multiplayer = 1;
+	float lenght = 0;
+	float creation_time = 0;
+
+
 
 	
 	glm::mat4 translation;
@@ -28,7 +32,7 @@ public:
 	glm::mat4 final;
 
 
-
+	void update();
 
 
 

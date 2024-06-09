@@ -16,172 +16,27 @@
 
 using namespace glm;
 
+
+#pragma region defines
+#define WINDOWWIDTH 640.0
+#define WINDOWHAIGHT 480.0
+
+
+class branch;
+#pragma endregion
+
+
+#pragma region golobal_variables
+
 extern std::vector<bone> treeSkeleton;
 
 
-void update_final_matrices() {
-	treeSkeleton[0].final = mat4(1) * treeSkeleton[0].translation * treeSkeleton[0].rotation;
-	for (unsigned int i = 1; i < treeSkeleton.size(); i++)
-	{
-		vec4 p(0, 1, 0, 1);
-		bone& bon = treeSkeleton[i];
-		bon.final = treeSkeleton[bon.parent].final * bon.translation * bon.rotation;
-		vec4 p2 = bon.final * p;
-		std::cout << p2.x << " " << p2.y << " " << p2.z << "\n";
+float symulation_time=0.0f;
+float scaled_delta;
 
 
-	}
-}
-class branch {
-public:
-	std::list<int> segments;
-	int max_lenght = 10;
-	vec4 point;
-	branch(unsigned int parent_index,vec4 aim_point,int maxsegments) {
-		update_final_matrices();
-
-
-		point = aim_point;
-		bone& attach_point = treeSkeleton[parent_index];
-		max_lenght = maxsegments;
-		bone b;
-		b.parent = parent_index;
-		b.lenght = 1;
-		mat4 starting = attach_point.final;
-		mat4 si = inverse(starting);
-		vec3 newPoint = si * point;
-
-		vec3 v1 = normalize(cross(newPoint, vec3(-1, -1, 0)));
-		vec3 v2 = normalize(cross(newPoint, v1));
-		vec3 nnp = normalize(newPoint);
-		float a = dot(v2, v1), d = dot(v2, nnp), c = dot(nnp, v1);
-
-		if (abs(dot(v2, v1)) > 0.001 || abs(dot(v2, nnp)) > 0.001 || abs(dot(nnp, v1)) > 0.001)
-		{
-			ASSERT(false);
-		}
-
-		mat4 rotation (v2.x, v2.y, v2.z, 0, nnp.x, nnp.y, nnp.z, 0, v1.x, v1.y, v1.z, 0, 0, 0, 0, 1);
-
-		/*if (normalize(newPoint) == vec3(0, 1, 0))
-		{
-			b.rotation = mat4(1);
-		}
-		else {
-
-			b.rotation = lookAt(vec3(0, 0, 0), vec3(1,0,0), (vec3)normalize(point));
-		}*/
-		b.rotation = rotation;
-		b.translation = translate(mat4(1), vec3(0, 1, 0));
-		treeSkeleton.push_back(std::move(b));
-		segments.push_back(treeSkeleton.size() - 1);
-	}
-
-	float counter=0;
-	void update(float delta) {
-		update_final_matrices();
-
-		std::normal_distribution<float> normal(1, 10);
-		std::mt19937 gen(time(NULL));
-		vec4 offset(normal(gen), normal(gen), normal(gen),0);
-
-		counter += delta;
-		if (counter < 2) {
-			return;
-		}
-		std::cout << "adding bone\n";
-		counter = 0;
-		
-		int last = *segments.rbegin();
-		bone& attach_point = treeSkeleton[last];
-		bone b;
-		mat4 starting = attach_point.final;
-		float a = determinant(starting);
-		mat4 si = inverse(starting);
-		vec3 newPoint = si * (point + offset);
-
-
-		vec3 v1 = normalize(cross(newPoint, vec3(-1, -1, 1)));
-		vec3 v2 = normalize(cross(newPoint, v1));
-		vec3 nnp = normalize(newPoint);
-
-		if (abs(dot(v2, v1)) > 0.001 || abs(dot(v2, nnp)) > 0.001 || abs(dot(nnp, v1)) > 0.001)
-		{
-			ASSERT(false);
-		}
-		
-
-		mat4 rotation(v2.x, v2.y, v2.z, 0, nnp.x, nnp.y, nnp.z, 0, v1.x, v1.y, v1.z, 0, 0, 0, 0, 1);
-
-		b.rotation = rotation;
-		
-		b.lenght = 1;
-		b.parent = last;
-		vec3 origin = starting * vec4(0, 0, 0, 1);
-
-		b.translation = translate(mat4(1), vec3(0, 1, 0));
-		treeSkeleton.push_back(std::move(b));
-		segments.push_back(treeSkeleton.size() - 1);
-
-		
-
-
-	}
-
-
-	
-};
-
-
-
-
-
-
-void generate_segemnt(unsigned int parentIndex)
-{
-	bone& parent = treeSkeleton[parentIndex];
-	parent.children++;
-	float rd = radians((float)(rand() % 360));
-
-	float rx = sin(rd);
-	float rz = cos(rd);
-	//float length = sqrt(rx * rx + rz * rz);
-	//rx /= length;
-	//rz /= length;
-	bone b;
-	b.layer = parent.layer + 1;
-
-	vec3 direction = vec3(rx, 0, rz);
-	vec3 straight = parent.final * vec4(0, 1, 0, 0);
-	vec3 up = vec3(0, 1, 0);
-	vec3 a = 0.5f * up + 0.5f * straight;
-	float t = clamp(clamp(1 - b.layer / 100.0f, 0.0f, 1.0f) - 0.2 * parent.children, 0.05, 0.95);
-	vec3 final = direction * t + a * (1 - t);
-	vec4 finaltransformed = parent.final * vec4(final.x, final.y, final.z, 0);
-	final = finaltransformed;
-
-
-
-	mat4 rotation = lookAt(vec3(0, 0, 0), final, vec3(0, 1, 0));
-	b.parent = parentIndex;
-	b.children = 0;
-	b.rotation = rotation;
-	b.lenght = 1;
-	b.translation = translate(mat4(1), vec3(0, parent.lenght, 0));
-	treeSkeleton.push_back(std::move(b));
-
-
-
-}
 std::vector<branch> branches;
 
-#pragma region Error
-
-#define ASSERT(x) if(!(x)) __debugbreak();
-
-#define GLCALL(x) ClearGLError();\
-x;\
-ASSERT(PrintGLError());
 
 
 
@@ -240,17 +95,6 @@ unsigned int vertexCount = 36;
 
 
 
-#define WINDOWWIDTH 640.0
-#define WINDOWHAIGHT 480.0
-
-void error_callback(int error, const char* description) {
-	fputs(description, stderr);
-}
-
-
-
-
-
 const  float common_vertecies[16] = {
 0.1,0,0,1,
 0,0,0.1,1,
@@ -260,14 +104,148 @@ const  float common_vertecies[16] = {
 
 
 
+#pragma endregion 
 
 
+
+
+void update_final_matrices() {
+	treeSkeleton[0].final = mat4(1) * treeSkeleton[0].translation * treeSkeleton[0].rotation;
+	for (unsigned int i = 1; i < treeSkeleton.size(); i++)
+	{
+		bone& bon = treeSkeleton[i];
+		bon.final = treeSkeleton[bon.parent].final * translate(mat4(1),vec3(0, treeSkeleton[bon.parent].lenght,0)) * bon.rotation;
+	
+
+
+	}
+}
+class branch {
+public:
+
+	float multiplayer = 1;
+	std::vector<int> segments;
+	int max_lenght = 10;
+	vec4 point;
+	branch(unsigned int parent_index,vec4 aim_point,int maxsegments) {
+		update_final_matrices();
+
+		point = aim_point;
+		bone& attach_point = treeSkeleton[parent_index];
+		max_lenght = maxsegments;
+		bone b;
+		b.multiplayer = treeSkeleton[parent_index].multiplayer - 0.1;
+		b.parent = parent_index;
+		b.lenght = 0.5;
+		b.layer = attach_point.layer + 1;
+		mat4 starting = attach_point.final;
+		mat4 si = inverse(starting);
+		vec3 newPoint = si * point;
+
+		vec3 v1 = normalize(cross(newPoint, vec3(-1, -1, 0)));
+		vec3 v2 = normalize(cross(newPoint, v1));
+		vec3 nnp = normalize(newPoint);
+		float a = dot(v2, v1), d = dot(v2, nnp), c = dot(nnp, v1);
+
+		if (abs(dot(v2, v1)) > 0.001 || abs(dot(v2, nnp)) > 0.001 || abs(dot(nnp, v1)) > 0.001)
+		{
+			ASSERT(false);
+		}
+
+		mat4 rotation (v2.x, v2.y, v2.z, 0, nnp.x, nnp.y, nnp.z, 0, v1.x, v1.y, v1.z, 0, 0, 0, 0, 1);
+
+		/*if (normalize(newPoint) == vec3(0, 1, 0))
+		{
+			b.rotation = mat4(1);
+		}
+		else {
+
+			b.rotation = lookAt(vec3(0, 0, 0), vec3(1,0,0), (vec3)normalize(point));
+		}*/
+		b.rotation = rotation;
+		treeSkeleton.push_back(std::move(b));
+		segments.push_back(treeSkeleton.size() - 1);
+	}
+
+	float counter=0;
+	void update(float delta) {
+		update_final_matrices();
+
+		std::normal_distribution<float> normal(0, 0.15);
+		std::mt19937 gen(time(NULL));
+		vec4 offset(normal(gen), 1, normal(gen),1);
+
+		counter += delta;
+		if (counter < 0.5) {
+			return;
+		}
+		max_lenght++;
+		counter = 0;
+		
+		
+		int x = segments.size() - 1;
+		int last = segments[x];
+		bone& attach_point = treeSkeleton[last];
+		bone b;
+		mat4 starting = attach_point.final;
+		mat4 si = inverse(starting);
+		vec3 newPoint =  (offset);
+
+
+		vec3 v1 = normalize(cross(newPoint, vec3(newPoint.y, newPoint.z, newPoint.x)));
+		vec3 v2 = normalize(cross(newPoint, v1));
+		vec3 nnp = normalize(newPoint);
+
+		if (abs(dot(v2, v1)) > 0.001 || abs(dot(v2, nnp)) > 0.001 || abs(dot(nnp, v1)) > 0.001)
+		{
+			ASSERT(false);
+		}
+		
+
+		mat4 rotation(v2.x, v2.y, v2.z, 0, nnp.x, nnp.y, nnp.z, 0, v1.x, v1.y, v1.z, 0, 0, 0, 0, 1);
+
+		b.rotation = rotation;
+		b.creation_time = symulation_time;
+		b.multiplayer = attach_point.multiplayer;
+		b.lenght = 0;
+		b.parent = last;
+		b.layer = attach_point.layer;
+		vec3 origin = starting * vec4(0, 0, 0, 1);
+		treeSkeleton.push_back(std::move(b));
+		segments.push_back(treeSkeleton.size() - 1);
+
+		
+		if (segments.size() == 3 || segments.size() == 5 || segments.size() == 7) {
+			std::normal_distribution<float> normal_dist(0, 0.75);
+			std::mt19937 generator(time(NULL));
+			int pom = rand() % (segments.size()/2) + segments.size()/2;
+			int index = segments[pom];
+
+			vec4 point(10 * normal_dist(generator), clamp(12 * normal_dist(generator),7.0f,15.0f),10 * normal_dist(generator), 1);
+			branch b(index, point, clamp((int)(10 - treeSkeleton[index].layer * 2), 1, 10));
+			branches.push_back(std::move(b));
+		}
+
+	}
+	
+};
+
+
+
+
+
+
+
+
+
+void error_callback(int error, const char* description) {
+	fputs(description, stderr);
+}
 
 
 
 int main(void)
 {
-
 
 #pragma region initialization
 	srand(time(NULL));
@@ -348,86 +326,88 @@ int main(void)
 	treeSkeleton.push_back(b1);
 	treeSkeleton.reserve(120);
 	treeSkeleton[0].final = mat4(1) * treeSkeleton[0].translation * treeSkeleton[0].rotation;
-	//treeSkeleton.push_back(b2);
-	//treeSkeleton.push_back(b3);
-
-
 	branch br(0, vec4(0, 10, 0, 1), 5);
-	//generate_segemnt(0);
+	branches.push_back(std::move(br));
 
-	br.update(2.1);
-	br.update(2.1);
-	br.update(2.1);
-	br.update(2.1);
-	br.update(2.1);
-	br.update(2.1);
-	br.update(2.1);
 
-	while (!glfwWindowShouldClose(window))
-	{
-		/*rotationAngle += 1;
-		mat4 view = glm::lookAt(vec3(4 * sin(glm::radians(rotationAngle)), 0, 4 * cos(glm::radians(rotationAngle))), vec3(0, 0, 0), vec3(0, 1, 0));
-		GLCALL(bonesShader.SetUniformMat4f("V", view));*/
+
+
+
+
 #pragma region Camera
-		Camera camera(vec3(0.0f, 1.7f, 2.0f), vec3(0.0f, 1.0f, 0.0f), -90.0f, 0.0f); //Initial camera position
-		float deltaTime = 0.0f;
-		float lastFrame = 0.0f;
+Camera camera(vec3(0.0f, 1.7f, 2.0f), vec3(0.0f, 1.0f, 0.0f), -90.0f, 0.0f); //Initial camera position
+float deltaTime = 0.0f;
+float lastFrame = 0.0f;
 
-		while (!glfwWindowShouldClose(window))
-		{
-			float currentFrame = glfwGetTime();
-			deltaTime = currentFrame - lastFrame; // Calculate frame time
-			lastFrame = currentFrame;
-			//Keyboard handling
-			if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
-				camera.ProcessKeyboard(GLFW_KEY_W, deltaTime);
-			if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
-				camera.ProcessKeyboard(GLFW_KEY_S, deltaTime);
-			if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
-				camera.ProcessKeyboard(GLFW_KEY_A, deltaTime);
-			if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
-				camera.ProcessKeyboard(GLFW_KEY_D, deltaTime);
-			if (glfwGetKey(window, GLFW_KEY_UP) == GLFW_PRESS)
-				camera.ProcessKeyboard(GLFW_KEY_UP, deltaTime);
-			if (glfwGetKey(window, GLFW_KEY_DOWN) == GLFW_PRESS)
-				camera.ProcessKeyboard(GLFW_KEY_DOWN, deltaTime);
-			if (glfwGetKey(window, GLFW_KEY_LEFT) == GLFW_PRESS)
-				camera.ProcessKeyboard(GLFW_KEY_LEFT, deltaTime);
-			if (glfwGetKey(window, GLFW_KEY_RIGHT) == GLFW_PRESS)
-				camera.ProcessKeyboard(GLFW_KEY_RIGHT, deltaTime);
+while (!glfwWindowShouldClose(window))
+{
+	float currentFrame = glfwGetTime();
+	deltaTime = currentFrame - lastFrame; // Calculate frame time
+	lastFrame = currentFrame;
+	//Keyboard handling
+	if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
+		camera.ProcessKeyboard(GLFW_KEY_W, deltaTime);
+	if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
+		camera.ProcessKeyboard(GLFW_KEY_S, deltaTime);
+	if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
+		camera.ProcessKeyboard(GLFW_KEY_A, deltaTime);
+	if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
+		camera.ProcessKeyboard(GLFW_KEY_D, deltaTime);
+	if (glfwGetKey(window, GLFW_KEY_UP) == GLFW_PRESS)
+		camera.ProcessKeyboard(GLFW_KEY_UP, deltaTime);
+	if (glfwGetKey(window, GLFW_KEY_DOWN) == GLFW_PRESS)
+		camera.ProcessKeyboard(GLFW_KEY_DOWN, deltaTime);
+	if (glfwGetKey(window, GLFW_KEY_LEFT) == GLFW_PRESS)
+		camera.ProcessKeyboard(GLFW_KEY_LEFT, deltaTime);
+	if (glfwGetKey(window, GLFW_KEY_RIGHT) == GLFW_PRESS)
+		camera.ProcessKeyboard(GLFW_KEY_RIGHT, deltaTime);
 
-			// Get the view matrix from the camera and pass it to the shader
-			mat4 view = camera.GetViewMatrix();
-			GLCALL(bonesShader.SetUniformMat4f("V", view));
+	// Get the view matrix from the camera and pass it to the shader
+	mat4 view = camera.GetViewMatrix();
+	GLCALL(bonesShader.SetUniformMat4f("V", view));
+
+	scaled_delta = deltaTime * 0.1;
+	symulation_time += scaled_delta;
 
 
 #pragma endregion Camera
 
 
-			glClear(GL_COLOR_BUFFER_BIT);
+glClear(GL_COLOR_BUFFER_BIT);
 
 #pragma region RenderBones
 
 
 
-			GLCALL(glVertexAttribPointer(0, 4, GL_FLOAT, GL_FALSE, 0, common_vertecies));
+GLCALL(glVertexAttribPointer(0, 4, GL_FLOAT, GL_FALSE, 0, common_vertecies));
 
-			bonesShader.Bind();
-
-
-			std::cout << treeSkeleton.size() << "\n";
-
-			update_final_matrices();
+bonesShader.Bind();
 
 
-			for (unsigned int i = 0; i < treeSkeleton.size(); i++)
-			{
-				bone& bon = treeSkeleton[i];
-				bonesShader.SetUniform4f("last", 0, bon.lenght, 0, 1);
 
-				bonesShader.SetUniformMat4f("M", bon.final);
-				GLCALL(glDrawArrays(GL_LINES_ADJACENCY, 0, 4))
-			}
+
+
+
+
+for (bone& b : treeSkeleton) {
+	
+	b.update();
+}
+for (branch& br : branches) {
+	br.update(scaled_delta);
+}
+
+update_final_matrices();
+
+
+for (unsigned int i = 1; i < treeSkeleton.size(); i++)
+{
+	bone& bon = treeSkeleton[i];
+	bonesShader.SetUniform4f("last", 0, bon.lenght, 0, 1);
+
+	bonesShader.SetUniformMat4f("M", bon.final);
+	GLCALL(glDrawArrays(GL_LINES_ADJACENCY, 0, 4))
+}
 
 
 
@@ -444,13 +424,12 @@ int main(void)
 
 
 
-			glfwSwapBuffers(window);
+	glfwSwapBuffers(window);
 
 
-			glfwPollEvents();
-		}
-
-		glfwTerminate();
-		return 0;
-	}
+	glfwPollEvents();
 }
+
+glfwTerminate();
+return 0;
+	}
