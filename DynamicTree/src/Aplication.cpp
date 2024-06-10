@@ -106,7 +106,8 @@ const  float common_vertecies[16] = {
 
 #pragma endregion 
 
-
+std::normal_distribution<float> normal_dist(0, 0.75);
+std::mt19937 generator(time(NULL));
 
 
 void update_final_matrices() {
@@ -114,7 +115,7 @@ void update_final_matrices() {
 	for (unsigned int i = 1; i < treeSkeleton.size(); i++)
 	{
 		bone& bon = treeSkeleton[i];
-		bon.final = treeSkeleton[bon.parent].final * translate(mat4(1),vec3(0, treeSkeleton[bon.parent].lenght,0)) * bon.rotation;
+		bon.final =  translate(treeSkeleton[bon.parent].final,vec3(0, treeSkeleton[bon.parent].lenght,0)) * bon.rotation;
 	
 
 
@@ -129,14 +130,17 @@ public:
 	vec4 point;
 	branch(unsigned int parent_index,vec4 aim_point,int maxsegments) {
 		update_final_matrices();
+		normal = std::normal_distribution<float>(0, 0.15);
+		gen = std::mt19937(time(NULL));
 
 		point = aim_point;
 		bone& attach_point = treeSkeleton[parent_index];
 		max_lenght = maxsegments;
 		bone b;
+		b.creation_time = symulation_time;
 		b.multiplayer = treeSkeleton[parent_index].multiplayer - 0.1;
 		b.parent = parent_index;
-		b.lenght = 0.5;
+		b.lenght = 0.1;
 		b.layer = attach_point.layer + 1;
 		mat4 starting = attach_point.final;
 		mat4 si = inverse(starting);
@@ -145,34 +149,23 @@ public:
 		vec3 v1 = normalize(cross(newPoint, vec3(-1, -1, 0)));
 		vec3 v2 = normalize(cross(newPoint, v1));
 		vec3 nnp = normalize(newPoint);
-		float a = dot(v2, v1), d = dot(v2, nnp), c = dot(nnp, v1);
 
-		if (abs(dot(v2, v1)) > 0.001 || abs(dot(v2, nnp)) > 0.001 || abs(dot(nnp, v1)) > 0.001)
-		{
-			ASSERT(false);
-		}
+
 
 		mat4 rotation (v2.x, v2.y, v2.z, 0, nnp.x, nnp.y, nnp.z, 0, v1.x, v1.y, v1.z, 0, 0, 0, 0, 1);
 
-		/*if (normalize(newPoint) == vec3(0, 1, 0))
-		{
-			b.rotation = mat4(1);
-		}
-		else {
-
-			b.rotation = lookAt(vec3(0, 0, 0), vec3(1,0,0), (vec3)normalize(point));
-		}*/
 		b.rotation = rotation;
 		treeSkeleton.push_back(std::move(b));
 		segments.push_back(treeSkeleton.size() - 1);
 	}
 
 	float counter=0;
+	std::normal_distribution<float> normal;
+	std::mt19937 gen;
 	void update(float delta) {
 		update_final_matrices();
 
-		std::normal_distribution<float> normal(0, 0.15);
-		std::mt19937 gen(time(NULL));
+		
 		vec4 offset(normal(gen), 1, normal(gen),1);
 
 		counter += delta;
@@ -188,7 +181,6 @@ public:
 		bone& attach_point = treeSkeleton[last];
 		bone b;
 		mat4 starting = attach_point.final;
-		mat4 si = inverse(starting);
 		vec3 newPoint =  (offset);
 
 
@@ -196,11 +188,6 @@ public:
 		vec3 v2 = normalize(cross(newPoint, v1));
 		vec3 nnp = normalize(newPoint);
 
-		if (abs(dot(v2, v1)) > 0.001 || abs(dot(v2, nnp)) > 0.001 || abs(dot(nnp, v1)) > 0.001)
-		{
-			ASSERT(false);
-		}
-		
 
 		mat4 rotation(v2.x, v2.y, v2.z, 0, nnp.x, nnp.y, nnp.z, 0, v1.x, v1.y, v1.z, 0, 0, 0, 0, 1);
 
@@ -215,9 +202,7 @@ public:
 		segments.push_back(treeSkeleton.size() - 1);
 
 		
-		if (segments.size() == 3 || segments.size() == 5 || segments.size() == 7) {
-			std::normal_distribution<float> normal_dist(0, 0.75);
-			std::mt19937 generator(time(NULL));
+		if (segments.size() == 3 || segments.size() == 6 || segments.size() == 8) {
 			int pom = rand() % (segments.size()/2) + segments.size()/2;
 			int index = segments[pom];
 
