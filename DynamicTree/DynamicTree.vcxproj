@@ -143,7 +143,15 @@
     <ClInclude Include="src\Bone.h" />
     <ClInclude Include="src\Camera.h" />
     <ClInclude Include="src\ShaderProgram.h" />
+    <ClInclude Include="src\teapotTest.h" />
     <ClInclude Include="src\Utils.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Shader\f_bones.glsl" />
+    <None Include="Shader\f_constant.glsl" />
+    <None Include="Shader\g_bones.glsl" />
+    <None Include="Shader\v_bones.glsl" />
+    <None Include="Shader\v_constant.glsl" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

@@ -5,8 +5,7 @@
 #include "ShaderProgram.h"
 
 
-
-
+#include "teapotTest.h"
 #include "Utils.h"
 #include "Bone.h"
 #include "Camera.h"
@@ -95,7 +94,15 @@ float vertices[] = {
 
 };
 unsigned int vertexCount = 36;
+float* vertices = myTeapotVertices;
+float* normals = myTeapotVertexNormals;
+float* texCoords = myTeapotTexCoords;
+float* colors = myTeapotColors;
+int vertexCount = myTeapotVertexCount;
 
+float* c1 = myTeapotC1;
+float* c2 = myTeapotC2;
+float* c3 = myTeapotC3;
 
 
 const  float common_vertecies[16] = {
@@ -366,22 +373,16 @@ int main(void)
 
 
 	GLCALL(glEnableVertexAttribArray(0));
+    Shader bonesShader("Shader\\v_bones.glsl", "Shader\\f_bones.glsl", "Shader\\g_bones.glsl");
+	
+	GLCALL(glEnableVertexAttribArray(4));  //Vertices position
+	//Normal mapping
+	GLCALL(glEnableVertexAttribArray(3));  //c3
+	GLCALL(glEnableVertexAttribArray(2));  //c2
+	GLCALL(glEnableVertexAttribArray(1));  //c1
+	
+	Shader treeShader("Shader\\v_constant.glsl", "Shader\\f_constant.glsl", "");
 
-
-
-	Shader bonesShader("Shader\\v_bones.glsl", "Shader\\f_constant.glsl", "Shader\\g_bones.glsl");
-	bonesShader.Bind();
-
-
-
-
-	mat4 proj = glm::perspective(90.0, WINDOWWIDTH / WINDOWHAIGHT, 0.01, 100.0);
-
-	mat4 model = mat4(1);
-
-	GLCALL(bonesShader.SetUniformMat4f("P", proj));
-
-	GLCALL(bonesShader.SetUniformMat4f("M", model));
 
 
 	bone b1;
@@ -442,11 +443,18 @@ while (!glfwWindowShouldClose(window))
 	symulation_time += scaled_delta;
 
 
+		// Get the view matrix from the camera and pass it to the shader
+		mat4 view = camera.GetViewMatrix();
 #pragma endregion Camera
+		
+		bonesShader.Bind();
+		mat4 proj = glm::perspective(90.0, WINDOWWIDTH / WINDOWHAIGHT, 0.01, 100.0);
+		GLCALL(bonesShader.SetUniformMat4f("P", proj));
+		GLCALL(bonesShader.SetUniformMat4f("V", view));
 
-
-glClear(GL_COLOR_BUFFER_BIT);
-
+		
+		glClear(GL_COLOR_BUFFER_BIT);
+		
 #pragma region RenderBones
 
 
@@ -484,13 +492,24 @@ for (unsigned int i = 1; i < treeSkeleton.size(); i++)
 
 
 
-
-
-
-
-
-
 #pragma endregion
+		
+		treeShader.Bind();
+		
+		GLCALL(treeShader.SetUniformMat4f("P", proj));
+		GLCALL(treeShader.SetUniformMat4f("V", view));
+	
+
+		mat4 cubeModel = mat4(1);
+		treeShader.SetUniformMat4f("M", cubeModel);
+
+		GLCALL(glVertexAttribPointer(4, 4, GL_FLOAT, GL_FALSE, 0, vertices));  //Position
+		GLCALL(glVertexAttribPointer(3, 4, GL_FLOAT, GL_FALSE, 0, c3));  //c3
+		GLCALL(glVertexAttribPointer(2, 4, GL_FLOAT, GL_FALSE, 0, c2));  //c2
+		GLCALL(glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, 0, c1));  //c1
+
+		
+		GLCALL(glDrawArrays(GL_TRIANGLES, 0, vertexCount))
 
 GLCALL(glVertexAttribPointer(0, 4, GL_FLOAT, GL_FALSE, 0, &treeSegment[0]));
 for (unsigned int i = 1; i < treeSkeleton.size(); i++)
