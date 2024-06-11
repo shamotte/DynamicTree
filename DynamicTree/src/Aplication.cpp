@@ -4,8 +4,8 @@
 
 #include "ShaderProgram.h"
 
-
-#include "teapotTest.h"
+#include "lodepng.h"
+#include "cubeTest.h"
 #include "Utils.h"
 #include "Bone.h"
 #include "Camera.h"
@@ -56,6 +56,31 @@ float* c2 = myTeapotC2;
 float* c3 = myTeapotC3;
 
 
+
+
+#define WINDOWWIDTH 640.0
+#define WINDOWHAIGHT 480.0
+
+void error_callback(int error, const char* description) {
+	fputs(description, stderr);
+}
+
+
+
+GLuint tex0;
+GLuint tex1;
+
+float* vertices = myCubeVertices;
+float* normals = myCubeNormals;
+float* texCoords = myCubeTexCoords;
+float* colors = myCubeColors;
+int vertexCount = myCubeVertexCount;
+float* c1 = myCubeC1;
+float* c2 = myCubeC2;
+float* c3 = myCubeC3;
+
+
+extern std::vector<bone> treeSkeleton;
 const  float common_vertecies[16] = {
 0.1,0,0,1,
 0,0,0.1,1,
@@ -187,6 +212,28 @@ void generate_vertecies()
 
 }
 
+GLuint readTexture(const char* filename) {
+	GLuint tex;
+	glActiveTexture(GL_TEXTURE0);
+
+	//Wczytanie do pami�ci komputera
+	std::vector<unsigned char> image;   //Alokuj wektor do wczytania obrazka
+	unsigned width, height;   //Zmienne do kt�rych wczytamy wymiary obrazka
+	//Wczytaj obrazek
+	unsigned error = lodepng::decode(image, width, height, filename);
+
+	//Import do pami�ci karty graficznej
+	glGenTextures(1, &tex); //Zainicjuj jeden uchwyt
+	glBindTexture(GL_TEXTURE_2D, tex); //Uaktywnij uchwyt
+	//Wczytaj obrazek do pami�ci KG skojarzonej z uchwytem
+	glTexImage2D(GL_TEXTURE_2D, 0, 4, width, height, 0,
+		GL_RGBA, GL_UNSIGNED_BYTE, (unsigned char*)image.data());
+
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+	return tex;
+}
 
 
 
@@ -337,52 +384,43 @@ int main(void)
 	}
 
 	glfwSetErrorCallback(error_callback);
-
+	glEnable(GL_DEPTH_TEST);
+	tex0 = readTexture("src/wood_color.png");
+	tex1 = readTexture("src/wood_normal.png");
+	
 #pragma endregion
 
 
 	generate_vertecies();
 
-
-
-
-
-
-
 	glClearColor(0.2, 0.6, 0.7, 1);
-	unsigned int vao;
-
-
-	unsigned int buffer;
-
-
-
-
-	GLCALL(glEnableVertexAttribArray(0));
+	
+	
     Shader bonesShader("Shader\\v_bones.glsl", "Shader\\f_bones.glsl", "Shader\\g_bones.glsl");
 	
-	GLCALL(glEnableVertexAttribArray(4));  //Vertices position
+	Shader treeShader("Shader\\v_constant.glsl", "Shader\\f_constant.glsl", "");
+	//Texture
+	GLCALL(glEnableVertexAttribArray(5));  
+	//Vertices position
+	GLCALL(glEnableVertexAttribArray(4));  
 	//Normal mapping
 	GLCALL(glEnableVertexAttribArray(3));  //c3
 	GLCALL(glEnableVertexAttribArray(2));  //c2
 	GLCALL(glEnableVertexAttribArray(1));  //c1
 	
 	//Shader treeShader("Shader\\v_constant.glsl", "Shader\\f_constant.glsl", "");
+	//Bones
+	GLCALL(glEnableVertexAttribArray(0));
 
 	Shader testShader("Shader\\v_test.glsl", "Shader\\f_bones.glsl");
 
 
 	bone b1;
-
 	b1.translation = mat4(1);
 	b1.rotation = mat4(1);
 	b1.final = mat4(1);
 	b1.lenght = 1;
 	b1.layer = 1;
-
-
-
-
 	treeSkeleton.push_back(b1);
 	treeSkeleton.reserve(120);
 	treeSkeleton[0].final = mat4(1) * treeSkeleton[0].translation * treeSkeleton[0].rotation;
@@ -431,6 +469,8 @@ while (!glfwWindowShouldClose(window))
 
 
 		// Get the view matrix from the camera and pass it to the shader
+		mat4 view = camera.GetViewMatrix();
+		
 #pragma endregion Camera
 		
 		bonesShader.Bind();
@@ -439,7 +479,7 @@ while (!glfwWindowShouldClose(window))
 		GLCALL(bonesShader.SetUniformMat4f("V", view));
 
 		
-		glClear(GL_COLOR_BUFFER_BIT);
+		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 		
 #pragma region RenderBones
 
@@ -481,7 +521,9 @@ for (unsigned int i = 1; i < treeSkeleton.size(); i++)
 
 #pragma endregion
 		
-		testShader.Bind();
+#pragma region RenderTree
+	
+		treeShader.Bind();
 		
 		GLCALL(testShader.SetUniformMat4f("P", proj));
 		GLCALL(testShader.SetUniformMat4f("V", view));
@@ -490,7 +532,8 @@ for (unsigned int i = 1; i < treeSkeleton.size(); i++)
 		mat4 cubeModel = mat4(1);
 		testShader.SetUniformMat4f("M", cubeModel);
 
-		GLCALL(glVertexAttribPointer(4, 4, GL_FLOAT, GL_FALSE, 0, vertices));  //Position
+		GLCALL(glVertexAttribPointer(5, 2, GL_FLOAT, GL_FALSE, 0, texCoords)); //Texture
+		GLCALL(glVertexAttribPointer(4, 4, GL_FLOAT, GL_FALSE, 0, vertices)); //Position
 		GLCALL(glVertexAttribPointer(3, 4, GL_FLOAT, GL_FALSE, 0, c3));  //c3
 		GLCALL(glVertexAttribPointer(2, 4, GL_FLOAT, GL_FALSE, 0, c2));  //c2
 		GLCALL(glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, 0, c1));  //c1
@@ -518,6 +561,17 @@ for (unsigned int i = 1; i < treeSkeleton.size(); i++)
 
 
 
+		
+		GLCALL(treeShader.SetUniform1i("textureMap0", 0))
+		glActiveTexture(GL_TEXTURE0);
+		glBindTexture(GL_TEXTURE_2D, tex0);
+
+		GLCALL(treeShader.SetUniform1i("textureMap1", 1))
+		glActiveTexture(GL_TEXTURE1);
+		glBindTexture(GL_TEXTURE_2D, tex1);
+
+		GLCALL(glDrawArrays(GL_TRIANGLES, 0, vertexCount))
+#pragma endregion
 
 
 	glfwSwapBuffers(window);
@@ -529,3 +583,15 @@ for (unsigned int i = 1; i < treeSkeleton.size(); i++)
 glfwTerminate();
 return 0;
 	}
+
+	glDisableVertexAttribArray(0);
+	glDisableVertexAttribArray(1);
+	glDisableVertexAttribArray(2);
+	glDisableVertexAttribArray(3);
+	glDisableVertexAttribArray(4);
+	glDisableVertexAttribArray(5);
+
+
+	glfwTerminate();
+	return 0;
+}

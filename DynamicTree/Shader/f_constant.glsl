@@ -1,7 +1,8 @@
 #version 330
 
+uniform sampler2D textureMap0;
+uniform sampler2D textureMap1;
 
-//uniform sampler2D textureMap1;
 
 out vec4 pixelColor; //Zmienna wyjsciowa fragment shadera. Zapisuje sie do niej ostateczny (prawie) kolor piksela
 
@@ -18,8 +19,8 @@ void main(void) {
 	vec4 mr=reflect(-ml,mn); //Wektor odbity
 
 	//Parametr powierzchni
-	//vec4 kd = texture(textureMap0, iTexCoord0);
-	//vec4 ks = vec4(1,1,1,1);   //texture(textureMap1, iTexCoord0);
+	vec4 kd = texture(textureMap0, iTreeTexture);
+	vec4 ks =  texture(textureMap0, iTreeTexture); //vec4(1,1,1,1);
 
 	//Model Phonga
 	float nl = clamp(dot(mn, ml), 0, 1); //Kosinus k¹ta pomiêdzy wektorami n i l.
