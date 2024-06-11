@@ -4,8 +4,8 @@
 
 #include "ShaderProgram.h"
 
-
-#include "teapotTest.h"
+#include "lodepng.h"
+#include "cubeTest.h"
 #include "Utils.h"
 #include "Bone.h"
 #include "Camera.h"
@@ -23,15 +23,6 @@ ASSERT(PrintGLError());
 
 using namespace glm;
 
-float* vertices = myTeapotVertices;
-float* normals = myTeapotVertexNormals;
-float* texCoords = myTeapotTexCoords;
-float* colors = myTeapotColors;
-int vertexCount = myTeapotVertexCount;
-
-float* c1 = myTeapotC1;
-float* c2 = myTeapotC2;
-float* c3 = myTeapotC3;
 
 
 #define WINDOWWIDTH 640.0
@@ -42,6 +33,18 @@ void error_callback(int error, const char* description) {
 }
 
 
+
+GLuint tex0;
+GLuint tex1;
+
+float* vertices = myCubeVertices;
+float* normals = myCubeNormals;
+float* texCoords = myCubeTexCoords;
+float* colors = myCubeColors;
+int vertexCount = myCubeVertexCount;
+float* c1 = myCubeC1;
+float* c2 = myCubeC2;
+float* c3 = myCubeC3;
 
 
 extern std::vector<bone> treeSkeleton;
@@ -91,6 +94,28 @@ void generate_segemnt(unsigned int parentIndex)
 
 }
 
+GLuint readTexture(const char* filename) {
+	GLuint tex;
+	glActiveTexture(GL_TEXTURE0);
+
+	//Wczytanie do pamiêci komputera
+	std::vector<unsigned char> image;   //Alokuj wektor do wczytania obrazka
+	unsigned width, height;   //Zmienne do których wczytamy wymiary obrazka
+	//Wczytaj obrazek
+	unsigned error = lodepng::decode(image, width, height, filename);
+
+	//Import do pamiêci karty graficznej
+	glGenTextures(1, &tex); //Zainicjuj jeden uchwyt
+	glBindTexture(GL_TEXTURE_2D, tex); //Uaktywnij uchwyt
+	//Wczytaj obrazek do pamiêci KG skojarzonej z uchwytem
+	glTexImage2D(GL_TEXTURE_2D, 0, 4, width, height, 0,
+		GL_RGBA, GL_UNSIGNED_BYTE, (unsigned char*)image.data());
+
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+	return tex;
+}
 
 
 
@@ -123,58 +148,43 @@ int main(void)
 	}
 
 	glfwSetErrorCallback(error_callback);
-
+	glEnable(GL_DEPTH_TEST);
+	tex0 = readTexture("src/wood_color.png");
+	tex1 = readTexture("src/wood_normal.png");
+	
 #pragma endregion
 
 
 
 
-
-
-
-
-
-
 	glClearColor(0.2, 0.6, 0.7, 1);
-	unsigned int vao;
-
-
-	unsigned int buffer;
-
-
-
-
-	GLCALL(glEnableVertexAttribArray(0));
+	
+	
     Shader bonesShader("Shader\\v_bones.glsl", "Shader\\f_bones.glsl", "Shader\\g_bones.glsl");
 	
-	GLCALL(glEnableVertexAttribArray(4));  //Vertices position
+	Shader treeShader("Shader\\v_constant.glsl", "Shader\\f_constant.glsl", "");
+	//Texture
+	GLCALL(glEnableVertexAttribArray(5));  
+	//Vertices position
+	GLCALL(glEnableVertexAttribArray(4));  
 	//Normal mapping
 	GLCALL(glEnableVertexAttribArray(3));  //c3
 	GLCALL(glEnableVertexAttribArray(2));  //c2
 	GLCALL(glEnableVertexAttribArray(1));  //c1
-	
-	Shader treeShader("Shader\\v_constant.glsl", "Shader\\f_constant.glsl", "");
+	//Bones
+	GLCALL(glEnableVertexAttribArray(0));
 
 
 
 	bone b1;
-
 	b1.translation = mat4(1);
 	b1.rotation = mat4(1);
 	b1.final = mat4(1);
 	b1.lenght = 1;
 	b1.layer = 1;
-
-
-
-
 	treeSkeleton.push_back(b1);
 	treeSkeleton.reserve(120);
-	//treeSkeleton.push_back(b2);
-	//treeSkeleton.push_back(b3);
-
-
-
+	
 
 	for (int i = 0; i < 10; i++)
 	{
@@ -182,9 +192,6 @@ int main(void)
 		generate_segemnt(parent);
 
 	}
-
-
-
 
 
 #pragma region Camera
@@ -217,6 +224,7 @@ int main(void)
 
 		// Get the view matrix from the camera and pass it to the shader
 		mat4 view = camera.GetViewMatrix();
+		
 #pragma endregion Camera
 		
 		bonesShader.Bind();
@@ -225,7 +233,7 @@ int main(void)
 		GLCALL(bonesShader.SetUniformMat4f("V", view));
 
 		
-		glClear(GL_COLOR_BUFFER_BIT);
+		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 		
 #pragma region RenderBones
 
@@ -252,6 +260,8 @@ int main(void)
 
 #pragma endregion
 		
+#pragma region RenderTree
+	
 		treeShader.Bind();
 		
 		GLCALL(treeShader.SetUniformMat4f("P", proj));
@@ -261,70 +271,38 @@ int main(void)
 		mat4 cubeModel = mat4(1);
 		treeShader.SetUniformMat4f("M", cubeModel);
 
-		GLCALL(glVertexAttribPointer(4, 4, GL_FLOAT, GL_FALSE, 0, vertices));  //Position
+		GLCALL(glVertexAttribPointer(5, 2, GL_FLOAT, GL_FALSE, 0, texCoords)); //Texture
+		GLCALL(glVertexAttribPointer(4, 4, GL_FLOAT, GL_FALSE, 0, vertices)); //Position
 		GLCALL(glVertexAttribPointer(3, 4, GL_FLOAT, GL_FALSE, 0, c3));  //c3
 		GLCALL(glVertexAttribPointer(2, 4, GL_FLOAT, GL_FALSE, 0, c2));  //c2
 		GLCALL(glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, 0, c1));  //c1
 
 		
+		
+		GLCALL(treeShader.SetUniform1i("textureMap0", 0))
+		glActiveTexture(GL_TEXTURE0);
+		glBindTexture(GL_TEXTURE_2D, tex0);
+
+		GLCALL(treeShader.SetUniform1i("textureMap1", 1))
+		glActiveTexture(GL_TEXTURE1);
+		glBindTexture(GL_TEXTURE_2D, tex1);
+
 		GLCALL(glDrawArrays(GL_TRIANGLES, 0, vertexCount))
-
-
-	/*	glDisableVertexAttribArray(2);  
-		glDisableVertexAttribArray(3);
-		glDisableVertexAttribArray(4);*/
-
-
-		/*t += 0.005;
-		t = fmodf(t, 1.0);
-		Quat rot = Quat::lerp(a, b, t);
-		Quat rots = Quat::slerp(a, b, t);
-
-		DualQuaternion first = DualQuaternion::translation(0, 0, 1);
-		DualQuaternion r = DualQuaternion(rot, Quat(0,0,0,0));
-
-		DualQuaternion c = first.multiply(r).multiply(first).multiply(r);
-
-
-
-		for (int i=0;i<36;i++)
-		{
-			vet[i] = (rot * quats[i] * rot.conjugate() ).toPont();
-			vet[i].x += 2;
-			DualQuaternion transformed(Quat(1, 0, 0, 0), quats[i]);
-
-			DualQuaternion f = c.multiply(transformed).multiply(c.conjugate());
-			Vertex v;
-			v.w = 1;
-			v.x = f.dual.x - 2;
-			v.y = f.dual.y;
-			v.z = f.dual.z;
-			vet2[i] = v;
-		}
-		GLCALL(glVertexAttribPointer(0, 4, GL_FLOAT, GL_FALSE, 0, vet));
-	 */
-	 /*	GLCALL(glVertexAttribPointer(0, 4, GL_FLOAT, GL_FALSE, 0, lines));
-		 glClear(GL_COLOR_BUFFER_BIT);
-		 glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-		 GLCALL(glDrawArrays(GL_TRIANGLES, 0, 3));*/
-
-
-
-
-
-		 //GLCALL(glVertexAttribPointer(0, 4, GL_FLOAT, GL_FALSE, 0, vet2));
-
-
-
-
-
-
+#pragma endregion
 
 		glfwSwapBuffers(window);
 
 
 		glfwPollEvents();
 	}
+
+	glDisableVertexAttribArray(0);
+	glDisableVertexAttribArray(1);
+	glDisableVertexAttribArray(2);
+	glDisableVertexAttribArray(3);
+	glDisableVertexAttribArray(4);
+	glDisableVertexAttribArray(5);
+
 
 	glfwTerminate();
 	return 0;

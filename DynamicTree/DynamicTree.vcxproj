@@ -136,14 +136,16 @@
     <ClCompile Include="src\Aplication.cpp" />
     <ClCompile Include="src\Bone.cpp" />
     <ClCompile Include="src\Camera.cpp" />
+    <ClCompile Include="src\lodepng.cpp" />
     <ClCompile Include="src\ShaderProgram.cpp" />
     <ClCompile Include="src\Utils.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\Bone.h" />
     <ClInclude Include="src\Camera.h" />
+    <ClInclude Include="src\cubeTest.h" />
+    <ClInclude Include="src\lodepng.h" />
     <ClInclude Include="src\ShaderProgram.h" />
-    <ClInclude Include="src\teapotTest.h" />
     <ClInclude Include="src\Utils.h" />
   </ItemGroup>
   <ItemGroup>
