@@ -152,6 +152,7 @@
     <None Include="Shader\g_bones.glsl" />
     <None Include="Shader\v_bones.glsl" />
     <None Include="Shader\v_constant.glsl" />
+    <None Include="Shader\v_test.glsl" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

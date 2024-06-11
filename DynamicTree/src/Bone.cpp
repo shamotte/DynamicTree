@@ -3,5 +3,6 @@ std::vector<bone> treeSkeleton;
 
 void bone::update()
 {
-	lenght = multiplayer * atan(symulation_time - creation_time);
+	if (lenght < 1.40)
+		lenght =  atan(symulation_time - creation_time);
 }

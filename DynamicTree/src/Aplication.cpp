@@ -24,6 +24,9 @@ using namespace glm;
 #define VERTECIESPERLEVEL 8
 
 
+#define BONELIMIT 150
+
+
 class branch;
 #pragma endregion
 
@@ -42,58 +45,6 @@ std::vector<branch> branches;
 
 
 
-float vertices[] = {
-				1.0f,-1.0f,-1.0f,1.0f,
-				-1.0f, 1.0f,-1.0f,1.0f,
-				-1.0f,-1.0f,-1.0f,1.0f,
-
-				1.0f,-1.0f,-1.0f,1.0f,
-				1.0f, 1.0f,-1.0f,1.0f,
-				-1.0f, 1.0f,-1.0f,1.0f,
-
-
-				-1.0f,-1.0f, 1.0f,1.0f,
-				1.0f, 1.0f, 1.0f,1.0f,
-				1.0f,-1.0f, 1.0f,1.0f,
-
-				-1.0f,-1.0f, 1.0f,1.0f,
-				-1.0f, 1.0f, 1.0f,1.0f,
-				1.0f, 1.0f, 1.0f,1.0f,
-
-				1.0f,-1.0f, 1.0f,1.0f,
-				1.0f, 1.0f,-1.0f,1.0f,
-				1.0f,-1.0f,-1.0f,1.0f,
-
-				1.0f,-1.0f, 1.0f,1.0f,
-				1.0f, 1.0f, 1.0f,1.0f,
-				1.0f, 1.0f,-1.0f,1.0f,
-
-				-1.0f,-1.0f,-1.0f,1.0f,
-				-1.0f, 1.0f, 1.0f,1.0f,
-				-1.0f,-1.0f, 1.0f,1.0f,
-
-				-1.0f,-1.0f,-1.0f,1.0f,
-				-1.0f, 1.0f,-1.0f,1.0f,
-				-1.0f, 1.0f, 1.0f,1.0f,
-
-				-1.0f,-1.0f,-1.0f,1.0f,
-				1.0f,-1.0f, 1.0f,1.0f,
-				1.0f,-1.0f,-1.0f,1.0f,
-
-				-1.0f,-1.0f,-1.0f,1.0f,
-				-1.0f,-1.0f, 1.0f,1.0f,
-				1.0f,-1.0f, 1.0f,1.0f,
-
-				-1.0f, 1.0f, 1.0f,1.0f,
-				1.0f, 1.0f,-1.0f,1.0f,
-				1.0f, 1.0f, 1.0f,1.0f,
-
-				-1.0f, 1.0f, 1.0f,1.0f,
-				-1.0f, 1.0f,-1.0f,1.0f,
-				1.0f, 1.0f,-1.0f,1.0f,
-
-};
-unsigned int vertexCount = 36;
 float* vertices = myTeapotVertices;
 float* normals = myTeapotVertexNormals;
 float* texCoords = myTeapotTexCoords;
@@ -121,18 +72,24 @@ std::mt19937 generator(time(NULL));
 #pragma endregion 
 
 std::vector<vec4> treeSegment;
+
+std::vector<vec4> tangnent;
+std::vector<vec4> bitangnent;
+std::vector<vec4> normal;
+std::vector<vec2> coords;
 void generate_vertecies()
 {
 
 	std::vector<vec4> vertecies;
+	std::vector<vec2> texcoords;
 	std::vector<unsigned int> indecies;
 	float radius = 0.3;
 	int verteciesPerLevel = 9;
 
 	float increment = 360.0f / verteciesPerLevel;
 
-	float levelHeight = 1;
-	int levelCount = 3;
+	float levelHeight = 0.5;
+	int levelCount = 2;
 
 
 	vertecies.reserve(verteciesPerLevel * levelCount);
@@ -146,7 +103,8 @@ void generate_vertecies()
 		float x = radius, z = 0, pomx;
 
 
-		vertecies.push_back(vec4(x, j, z, 1.0f));
+		vertecies.push_back(vec4(x, j * levelHeight, z, 1.0f));
+		texcoords.push_back(vec2(0, j * levelCount));
 
 
 
@@ -158,9 +116,9 @@ void generate_vertecies()
 
 			x = pomx;
 
-			vertecies.push_back(vec4(x, j, z, 1.0f));
+			vertecies.push_back(vec4(x, j * levelHeight, z, 1.0f));
 
-
+			texcoords.push_back(vec2((float)i/ (float)verteciesPerLevel, j * levelCount));
 
 
 
@@ -193,10 +151,38 @@ void generate_vertecies()
 
 	treeSegment.reserve(indecies.size());
 
-	for (unsigned int i : indecies)
+	for (int i =0;i<indecies.size()/3;i++)
 	{
-		treeSegment.push_back(vertecies[i]);
+
+
+		vec4 pa = vertecies[indecies[3 * i]],
+			pb = vertecies[indecies[3 * i + 1]],
+			pc = vertecies[indecies[3 * i + 2]];
+
+		vec3 v1 = pc - pa, v2 = pb - pa;
+
+		vec3 norm = normalize(cross(v1, v2));
+		vec4 tg = vec4(v1,0);
+		vec3 btg = normalize(cross(v1, norm));
+		for (int x = 0; x < 3; x++)
+		{
+		treeSegment.push_back(vertecies[indecies[3 * i + x]]);
+		tangnent.push_back(tg);
+		bitangnent.push_back(vec4(btg,0));
+		normal.push_back(vec4(norm,0));
+
+
+
+		}
+
+
+
+
+		
+
+
 	}
+
 
 
 }
@@ -355,7 +341,7 @@ int main(void)
 #pragma endregion
 
 
-
+	generate_vertecies();
 
 
 
@@ -381,8 +367,9 @@ int main(void)
 	GLCALL(glEnableVertexAttribArray(2));  //c2
 	GLCALL(glEnableVertexAttribArray(1));  //c1
 	
-	Shader treeShader("Shader\\v_constant.glsl", "Shader\\f_constant.glsl", "");
+	//Shader treeShader("Shader\\v_constant.glsl", "Shader\\f_constant.glsl", "");
 
+	Shader testShader("Shader\\v_test.glsl", "Shader\\f_bones.glsl");
 
 
 	bone b1;
@@ -444,7 +431,6 @@ while (!glfwWindowShouldClose(window))
 
 
 		// Get the view matrix from the camera and pass it to the shader
-		mat4 view = camera.GetViewMatrix();
 #pragma endregion Camera
 		
 		bonesShader.Bind();
@@ -468,13 +454,14 @@ bonesShader.Bind();
 
 
 
-
 for (bone& b : treeSkeleton) {
 	
 	b.update();
 }
+if(treeSkeleton.size() < BONELIMIT){
 for (branch& br : branches) {
 	br.update(scaled_delta);
+}
 }
 
 update_final_matrices();
@@ -494,14 +481,14 @@ for (unsigned int i = 1; i < treeSkeleton.size(); i++)
 
 #pragma endregion
 		
-		treeShader.Bind();
+		testShader.Bind();
 		
-		GLCALL(treeShader.SetUniformMat4f("P", proj));
-		GLCALL(treeShader.SetUniformMat4f("V", view));
+		GLCALL(testShader.SetUniformMat4f("P", proj));
+		GLCALL(testShader.SetUniformMat4f("V", view));
 	
 
 		mat4 cubeModel = mat4(1);
-		treeShader.SetUniformMat4f("M", cubeModel);
+		testShader.SetUniformMat4f("M", cubeModel);
 
 		GLCALL(glVertexAttribPointer(4, 4, GL_FLOAT, GL_FALSE, 0, vertices));  //Position
 		GLCALL(glVertexAttribPointer(3, 4, GL_FLOAT, GL_FALSE, 0, c3));  //c3
@@ -509,18 +496,22 @@ for (unsigned int i = 1; i < treeSkeleton.size(); i++)
 		GLCALL(glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, 0, c1));  //c1
 
 		
-		GLCALL(glDrawArrays(GL_TRIANGLES, 0, vertexCount))
+		//GLCALL(glDrawArrays(GL_TRIANGLES, 0, vertexCount))
 
 GLCALL(glVertexAttribPointer(0, 4, GL_FLOAT, GL_FALSE, 0, &treeSegment[0]));
+
+		//glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 for (unsigned int i = 1; i < treeSkeleton.size(); i++)
 {
 	bone& bon = treeSkeleton[i];
-	bonesShader.SetUniform4f("last", 0, bon.lenght, 0, 1);
 
-	bonesShader.SetUniformMat4f("M", bon.final);
+	mat4 f = scale(bon.final, vec3(bon.lenght, bon.lenght, bon.lenght));
+	testShader.SetUniformMat4f("M", f);
 	GLCALL(glDrawArrays(GL_TRIANGLES, 0, treeSegment.size()));
 }
 
+	
+//glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 
 
 
