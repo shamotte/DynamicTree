@@ -44,5 +44,25 @@
     <ClInclude Include="src\Camera.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="src\teapotTest.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Shader\g_bones.glsl">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="Shader\v_bones.glsl">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="Shader\f_constant.glsl">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="Shader\v_constant.glsl">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="Shader\f_bones.glsl">
+      <Filter>Resource Files</Filter>
+    </None>
   </ItemGroup>
 </Project>
