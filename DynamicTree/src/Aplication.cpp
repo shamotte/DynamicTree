@@ -14,12 +14,15 @@
 #include <list>
 #include <random>
 
+#include <fstream>
+
 using namespace glm;
 
 
 #pragma region defines
 #define WINDOWWIDTH 640.0
 #define WINDOWHAIGHT 480.0
+#define VERTECIESPERLEVEL 8
 
 
 class branch;
@@ -102,12 +105,96 @@ const  float common_vertecies[16] = {
 0,0,-0.1,1
 };
 
+std::normal_distribution<float> normal_dist(0, 0.75);
+std::mt19937 generator(time(NULL));
+
+
 
 
 #pragma endregion 
 
-std::normal_distribution<float> normal_dist(0, 0.75);
-std::mt19937 generator(time(NULL));
+std::vector<vec4> treeSegment;
+void generate_vertecies()
+{
+
+	std::vector<vec4> vertecies;
+	std::vector<unsigned int> indecies;
+	float radius = 0.3;
+	int verteciesPerLevel = 9;
+
+	float increment = 360.0f / verteciesPerLevel;
+
+	float levelHeight = 1;
+	int levelCount = 3;
+
+
+	vertecies.reserve(verteciesPerLevel * levelCount);
+
+	// vertex* treeArray = new vertex[levelCount * verteciesPerLevel]{ };
+
+
+	unsigned int* treeIndecies = new unsigned int[levelCount * verteciesPerLevel] {0};
+	for (int j = 0; j <= levelCount; j++)
+	{
+		float x = radius, z = 0, pomx;
+
+
+		vertecies.push_back(vec4(x, j, z, 1.0f));
+
+
+
+
+		for (int i = 1; i < verteciesPerLevel; i++)
+		{
+			pomx = cos(glm::radians(increment)) * x - z * sin(glm::radians(increment));
+			z = sin(glm::radians(increment)) * x + z * cos(glm::radians(increment));
+
+			x = pomx;
+
+			vertecies.push_back(vec4(x, j, z, 1.0f));
+
+
+
+
+
+		}
+	}
+
+
+	indecies.reserve(verteciesPerLevel * levelCount * 3);
+	for (unsigned int level = 0; level < levelCount; level++)
+	{
+
+		for (unsigned int x = 0; x < verteciesPerLevel; x++)
+		{
+			unsigned int i = x + level * verteciesPerLevel;
+
+			indecies.push_back(i);
+			indecies.push_back(i + verteciesPerLevel);
+			indecies.push_back((i % verteciesPerLevel == verteciesPerLevel - 1) ? (level * verteciesPerLevel) : i + 1);
+
+
+
+			indecies.push_back(i + verteciesPerLevel);
+			indecies.push_back((i % verteciesPerLevel == verteciesPerLevel - 1) ? i + 1 : i + verteciesPerLevel + 1);
+			indecies.push_back((i % verteciesPerLevel == verteciesPerLevel - 1) ? (level * verteciesPerLevel) : (i + 1));
+
+		}
+
+	}
+
+
+	treeSegment.reserve(indecies.size());
+
+	for (unsigned int i : indecies)
+	{
+		treeSegment.push_back(vertecies[i]);
+	}
+
+
+}
+
+
 
 
 void update_final_matrices() {
@@ -397,9 +484,23 @@ for (unsigned int i = 1; i < treeSkeleton.size(); i++)
 
 
 
+
+
+
+
+
+
 #pragma endregion
 
+GLCALL(glVertexAttribPointer(0, 4, GL_FLOAT, GL_FALSE, 0, &treeSegment[0]));
+for (unsigned int i = 1; i < treeSkeleton.size(); i++)
+{
+	bone& bon = treeSkeleton[i];
+	bonesShader.SetUniform4f("last", 0, bon.lenght, 0, 1);
 
+	bonesShader.SetUniformMat4f("M", bon.final);
+	GLCALL(glDrawArrays(GL_TRIANGLES, 0, treeSegment.size()));
+}
 
 
 
