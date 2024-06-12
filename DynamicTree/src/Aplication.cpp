@@ -45,21 +45,8 @@ std::vector<branch> branches;
 
 
 
-float* vertices = myTeapotVertices;
-float* normals = myTeapotVertexNormals;
-float* texCoords = myTeapotTexCoords;
-float* colors = myTeapotColors;
-int vertexCount = myTeapotVertexCount;
-
-float* c1 = myTeapotC1;
-float* c2 = myTeapotC2;
-float* c3 = myTeapotC3;
-
-
-
-
-#define WINDOWWIDTH 640.0
-#define WINDOWHAIGHT 480.0
+#define WINDOWWIDTH 1000.0
+#define WINDOWHAIGHT 1000.0
 
 void error_callback(int error, const char* description) {
 	fputs(description, stderr);
@@ -69,6 +56,7 @@ void error_callback(int error, const char* description) {
 
 GLuint tex0;
 GLuint tex1;
+GLuint tex2;
 
 float* vertices = myCubeVertices;
 float* normals = myCubeNormals;
@@ -89,6 +77,7 @@ const  float common_vertecies[16] = {
 };
 
 std::normal_distribution<float> normal_dist(0, 0.75);
+std::uniform_real_distribution<float> real(0.0, 1.0);
 std::mt19937 generator(time(NULL));
 
 
@@ -159,19 +148,21 @@ void generate_vertecies()
 		{
 			unsigned int i = x + level * verteciesPerLevel;
 
+			indecies.push_back((i % verteciesPerLevel == verteciesPerLevel - 1) ? (level * verteciesPerLevel) : i + 1);
 			indecies.push_back(i);
 			indecies.push_back(i + verteciesPerLevel);
-			indecies.push_back((i % verteciesPerLevel == verteciesPerLevel - 1) ? (level * verteciesPerLevel) : i + 1);
 
 
 
+			indecies.push_back((i % verteciesPerLevel == verteciesPerLevel - 1) ? (level * verteciesPerLevel) : (i + 1));
 			indecies.push_back(i + verteciesPerLevel);
 			indecies.push_back((i % verteciesPerLevel == verteciesPerLevel - 1) ? i + 1 : i + verteciesPerLevel + 1);
-			indecies.push_back((i % verteciesPerLevel == verteciesPerLevel - 1) ? (level * verteciesPerLevel) : (i + 1));
 
 		}
 
 	}
+
+
 
 
 	treeSegment.reserve(indecies.size());
@@ -195,6 +186,7 @@ void generate_vertecies()
 		tangnent.push_back(tg);
 		bitangnent.push_back(vec4(btg,0));
 		normal.push_back(vec4(norm,0));
+		coords.push_back(texcoords[indecies[3 * i + x]]);
 
 
 
@@ -235,6 +227,9 @@ GLuint readTexture(const char* filename) {
 	return tex;
 }
 
+
+
+std::vector<vec4> leaves_quads;
 
 
 void update_final_matrices() {
@@ -328,12 +323,22 @@ public:
 		treeSkeleton.push_back(std::move(b));
 		segments.push_back(treeSkeleton.size() - 1);
 
+		if (segments.size() > 3) {
+			for (int x = 0; x < segments.size();x++)
+			{
+				if (real(generator) > 0.1);
+				{
+					leaves_quads.push_back(vec4(normal(generator), normal(generator), normal(generator),0));
+				}
+			}
+		}
+
 		
 		if (segments.size() == 3 || segments.size() == 6 || segments.size() == 8) {
 			int pom = rand() % (segments.size()/2) + segments.size()/2;
 			int index = segments[pom];
 
-			vec4 point(10 * normal_dist(generator), clamp(12 * normal_dist(generator),7.0f,15.0f),10 * normal_dist(generator), 1);
+			vec4 point(10 * normal_dist(generator), 12 * normal_dist(generator)+ 16,10 * normal_dist(generator), 1);
 			branch b(index, point, clamp((int)(10 - treeSkeleton[index].layer * 2), 1, 10));
 			branches.push_back(std::move(b));
 		}
@@ -345,14 +350,32 @@ public:
 
 
 
+bool render_bones = false, render_bark = true;
 
 
+void key_callback(
+	GLFWwindow* window,
+	int key,
+	int scancode,
+	int action,
+	int mod
+) {
+	if (action == GLFW_PRESS) {
 
+		if (key == GLFW_KEY_B)
+		{
+			render_bones = !render_bones;
+		}
+		if (key == GLFW_KEY_N)
+		{
+			render_bark = !render_bark;
+		}
 
-
-void error_callback(int error, const char* description) {
-	fputs(description, stderr);
+		
+	}
 }
+
+
 
 
 
@@ -384,9 +407,11 @@ int main(void)
 	}
 
 	glfwSetErrorCallback(error_callback);
+	glfwSetKeyCallback(window, key_callback);
 	glEnable(GL_DEPTH_TEST);
 	tex0 = readTexture("src/wood_color.png");
 	tex1 = readTexture("src/wood_normal.png");
+	tex2 = readTexture("src/liscie1.png");
 	
 #pragma endregion
 
@@ -399,6 +424,9 @@ int main(void)
     Shader bonesShader("Shader\\v_bones.glsl", "Shader\\f_bones.glsl", "Shader\\g_bones.glsl");
 	
 	Shader treeShader("Shader\\v_constant.glsl", "Shader\\f_constant.glsl", "");
+
+	Shader leavesShader("Shader\\v_liscie.glsl", "Sahder\\f_liscie.glsl");
+
 	//Texture
 	GLCALL(glEnableVertexAttribArray(5));  
 	//Vertices position
@@ -427,7 +455,26 @@ int main(void)
 	branch br(0, vec4(0, 10, 0, 1), 5);
 	branches.push_back(std::move(br));
 
+	float quad[] = {
+		-1,1,0,1,
+		1,1,0,1,
+		-1,-1,0,1,
 
+		1,1,0,1,
+		-1,-1,0,1,
+		1,-1,0,1
+	};
+	float quad_coords[] =
+	{
+		0,1,
+		1,1,
+		0,0,
+
+		1,1,
+		0,0,
+		1,0
+
+	};
 
 
 
@@ -462,14 +509,9 @@ while (!glfwWindowShouldClose(window))
 
 	// Get the view matrix from the camera and pass it to the shader
 	mat4 view = camera.GetViewMatrix();
-	GLCALL(bonesShader.SetUniformMat4f("V", view));
 
 	scaled_delta = deltaTime * 0.1;
 	symulation_time += scaled_delta;
-
-
-		// Get the view matrix from the camera and pass it to the shader
-		mat4 view = camera.GetViewMatrix();
 		
 #pragma endregion Camera
 		
@@ -481,6 +523,9 @@ while (!glfwWindowShouldClose(window))
 		
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 		
+
+
+
 #pragma region RenderBones
 
 
@@ -506,71 +551,81 @@ for (branch& br : branches) {
 
 update_final_matrices();
 
+if (render_bones) {
 
-for (unsigned int i = 1; i < treeSkeleton.size(); i++)
-{
-	bone& bon = treeSkeleton[i];
-	bonesShader.SetUniform4f("last", 0, bon.lenght, 0, 1);
+	for (unsigned int i = 1; i < treeSkeleton.size(); i++)
+	{
+		bone& bon = treeSkeleton[i];
+		bonesShader.SetUniform4f("last", 0, bon.lenght, 0, 1);
 
-	bonesShader.SetUniformMat4f("M", bon.final);
-	GLCALL(glDrawArrays(GL_LINES_ADJACENCY, 0, 4))
+		bonesShader.SetUniformMat4f("M", bon.final);
+		GLCALL(glDrawArrays(GL_LINES_ADJACENCY, 0, 4))
+	}
+
 }
-
-
 
 
 #pragma endregion
 		
 #pragma region RenderTree
-	
-		treeShader.Bind();
-		
-		GLCALL(testShader.SetUniformMat4f("P", proj));
-		GLCALL(testShader.SetUniformMat4f("V", view));
-	
+if (render_bark) {
+	treeShader.Bind();
 
-		mat4 cubeModel = mat4(1);
-		testShader.SetUniformMat4f("M", cubeModel);
-
-		GLCALL(glVertexAttribPointer(5, 2, GL_FLOAT, GL_FALSE, 0, texCoords)); //Texture
-		GLCALL(glVertexAttribPointer(4, 4, GL_FLOAT, GL_FALSE, 0, vertices)); //Position
-		GLCALL(glVertexAttribPointer(3, 4, GL_FLOAT, GL_FALSE, 0, c3));  //c3
-		GLCALL(glVertexAttribPointer(2, 4, GL_FLOAT, GL_FALSE, 0, c2));  //c2
-		GLCALL(glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, 0, c1));  //c1
-
-		
-		//GLCALL(glDrawArrays(GL_TRIANGLES, 0, vertexCount))
-
-GLCALL(glVertexAttribPointer(0, 4, GL_FLOAT, GL_FALSE, 0, &treeSegment[0]));
-
-		//glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-for (unsigned int i = 1; i < treeSkeleton.size(); i++)
-{
-	bone& bon = treeSkeleton[i];
-
-	mat4 f = scale(bon.final, vec3(bon.lenght, bon.lenght, bon.lenght));
-	testShader.SetUniformMat4f("M", f);
-	GLCALL(glDrawArrays(GL_TRIANGLES, 0, treeSegment.size()));
-}
-
-	
-//glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+	GLCALL(treeShader.SetUniformMat4f("P", proj));
+	GLCALL(treeShader.SetUniformMat4f("V", view));
 
 
 
+	GLCALL(glVertexAttribPointer(5, 2, GL_FLOAT, GL_FALSE, 0, &coords[0])); //Texture
+	GLCALL(glVertexAttribPointer(4, 4, GL_FLOAT, GL_FALSE, 0, &treeSegment[0])); //Position
+	GLCALL(glVertexAttribPointer(3, 4, GL_FLOAT, GL_FALSE, 0, &normal[0]));  //c3
+	GLCALL(glVertexAttribPointer(2, 4, GL_FLOAT, GL_FALSE, 0, &bitangnent[0]));  //c2
+	GLCALL(glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, 0, &tangnent[0]));
 
-
-
-		
-		GLCALL(treeShader.SetUniform1i("textureMap0", 0))
+	GLCALL(treeShader.SetUniform1i("textureMap0", 0))
 		glActiveTexture(GL_TEXTURE0);
-		glBindTexture(GL_TEXTURE_2D, tex0);
-
-		GLCALL(treeShader.SetUniform1i("textureMap1", 1))
+	glBindTexture(GL_TEXTURE_2D, tex0);
+	GLCALL(treeShader.SetUniform1i("textureMap1", 1))
 		glActiveTexture(GL_TEXTURE1);
-		glBindTexture(GL_TEXTURE_2D, tex1);
+	glBindTexture(GL_TEXTURE_2D, tex1);
 
-		GLCALL(glDrawArrays(GL_TRIANGLES, 0, vertexCount))
+
+	for (unsigned int i = 1; i < treeSkeleton.size(); i++)
+	{
+		bone& bon = treeSkeleton[i];
+
+		mat4 f = scale(bon.final, vec3(bon.lenght, bon.lenght, bon.lenght));
+		treeShader.SetUniformMat4f("M", f);
+		GLCALL(glDrawArrays(GL_TRIANGLES, 0, treeSegment.size()));
+	}
+
+}
+//leavesShader.Bind();
+//GLCALL(glVertexAttribPointer(2, 4, GL_FLOAT, GL_FALSE, 0, quad_coords));  //c2
+//GLCALL(glVertexAttribPointer(0, 4, GL_FLOAT, GL_FALSE, 0, quad));
+//
+//GLCALL(treeShader.SetUniformMat4f("P", proj));
+//GLCALL(treeShader.SetUniformMat4f("V", view));
+//
+//GLCALL(treeShader.SetUniform1i("tex", 2))
+//glActiveTexture(GL_TEXTURE2);
+//glBindTexture(GL_TEXTURE_2D, tex2);
+//for(vec3 quad :leaves_quads)
+//{
+//	mat4 leaves_model = mat4(1); lookAt(quad, camera.Position, vec3(0, 1, 0));
+//	leavesShader.SetUniformMat4f("M", leaves_model);
+//
+//	glDrawArrays(GL_TRIANGLES, 0, 6);
+//
+//}
+
+
+
+
+
+
+
+		
 #pragma endregion
 
 
@@ -580,9 +635,7 @@ for (unsigned int i = 1; i < treeSkeleton.size(); i++)
 	glfwPollEvents();
 }
 
-glfwTerminate();
-return 0;
-	}
+
 
 	glDisableVertexAttribArray(0);
 	glDisableVertexAttribArray(1);

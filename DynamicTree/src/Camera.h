@@ -13,8 +13,8 @@ public:
     mat4 GetViewMatrix(); 
     void ProcessKeyboard(int direction, float deltaTime);
 
-private:
     vec3 Position, Front, Up, Right, WorldUp; // Camera vectors
+private:
     float Yaw, Pitch;  // Angles defining the camera's orientation
     float MovementSpeed, Zoom;
     void updateCameraVectors(); // Update camera vectors based on the current yaw and pitch
